@@ -1,7 +1,8 @@
 # fb-scraper
 
 NGINX Proxy for fb-scraper app
-
+## Database
+* MongoDB https://docs.mongodb.com
 ## Requirements
 * Python >=3.6
 * Pip3
