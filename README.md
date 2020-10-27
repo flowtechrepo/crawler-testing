@@ -3,8 +3,8 @@
 NGINX Proxy for fb-scraper app
 
 ## Requirements
-* python >=3.6
-* pip3
+* Python >=3.6
+* Pip3
 ## Usage
 
 * pip install -r requirements.txt
