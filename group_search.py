@@ -4,24 +4,38 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 from datetime import date
+from datetime import timedelta
 from time import sleep
+import pymongo
 import json
+import os
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+with open(ROOT_DIR+'/config_db.json') as json_file:
+    config = json.loads(json_file.read())
+# config = json.load(config)
 
+mongoclient = pymongo.MongoClient("mongodb://{}:{}/".format(config["host"], config["port"]))
+db = mongoclient[config["db"]]
 
-# mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
-# db = mongoclient["fb-post"]
+def get_list_group():
+    mycol = db["facebook_groups"]
+    groups = []
+    for x in mycol.find({}, {"plafform": "facebook"}):
+        groups.append(x["_id"])
+    print(groups)
+    return groups
 #
-# def insert_post_one(post):
-#     post_dict = post
-#     # print(post_dict["post_id"])
-#     post_dict.update({"_id":post_dict["post_id"]})
-#     mycol = db["posts"]
-#     try:
-#         x = mycol.insert_one(post)
-#         print(x.inserted_id)
-#     except Exception as e:
-#         # print(e)
-#         pass
+def insert_post_one(post):
+    post_dict = post
+    # print(post_dict["post_id"])
+    post_dict.update({"_id":post_dict["post_id"]})
+    mycol = db["facebook_posts"]
+    try:
+        x = mycol.insert_one(post)
+        print(x.inserted_id)
+    except Exception as e:
+        # print(e)
+        pass
 
 
 def parse(g_id, p_id):
@@ -50,6 +64,9 @@ def parse(g_id, p_id):
             # print(timestamp)
             dt = datetime.datetime.fromtimestamp(int(timestamp))
             pubdate = dt.strftime("%Y-%m-%d %H:%M:%S")
+            post_date = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
+            # print(post_date)
+            datetime_object = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
 
 
             date_str = dt.strftime("%Y-%m-%d")
@@ -86,7 +103,8 @@ def parse(g_id, p_id):
             username = usr_name[0]
             # # # print(user_id)
 
-            data["pubdate"] = pubdate
+            data["post_date"] = post_date
+            data["pubdate"] = datetime_object.isoformat()
             data["user_id"] = user_id
             data["username"] = username
             data["fullname"] = fullname
@@ -96,8 +114,13 @@ def parse(g_id, p_id):
             #    (bool(BeautifulSoup(data["post_url"] , "html.parser").find())==True):
             #     return None
             # print(data)
-            return  data
-        except:
+            return data
+            # if post_date < last_hour:
+            #     return data
+            # else:
+            #     print(post_date)
+        except Exception as e:
+            print('Err 1', e)
             # print(str(raw))
             return None
 
@@ -114,6 +137,9 @@ def parse(g_id, p_id):
             # print(timestamp)
             dt = datetime.datetime.fromtimestamp(int(timestamp))
             pubdate = dt.strftime("%Y-%m-%d %H:%M:%S")
+            # post_date = datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
+            post_date = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
+            datetime_object = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
 
             date_str = dt.strftime("%Y-%m-%d")
             # print(type(date_str))
@@ -151,7 +177,8 @@ def parse(g_id, p_id):
             # # # print(fname)
             fullname = ''.join(fname)
             # # # print(user_id)
-            data["pubdate"] = pubdate
+            data["post_date"] = post_date
+            data["pubdate"] = datetime_object.isoformat()
             data["user_id"] = user_id
             data["username"] = username
             data["fullname"] = fullname
@@ -162,7 +189,12 @@ def parse(g_id, p_id):
             #    (bool(BeautifulSoup(data["post_url"] , "html.parser").find())==True):
             #     return None
             return data
-        except:
+            # if post_date < last_hour:
+            #     return data
+            # else:
+            #     print(post_date)
+        except Exception as e:
+            print('Err 2', e)
             # print(str(raw))
             return None
     else:
@@ -179,6 +211,9 @@ def parse(g_id, p_id):
             # print(timestamp)
             dt = datetime.datetime.fromtimestamp(int(timestamp))
             pubdate = dt.strftime("%Y-%m-%d %H:%M:%S")
+            # post_date = datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
+            post_date = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
+            datetime_object = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
 
             ids = re.findall('actor_id\"\:\"(.*?)\"\,\"', str(story_raw))
             if ids is None or ids==[]:
@@ -198,7 +233,8 @@ def parse(g_id, p_id):
             # user_raw = re.findall('bt"><strong><a hre(.*?)<\/strong>', str(raw))
             fname = re.findall('<strong><a>(.*?)<\/a><\/strong><span class="bv"', str(story_raw))
             fullname = ''.join(fname)
-            data["pubdate"] = pubdate
+            data["post_date"] = post_date
+            data["pubdate"] = datetime_object.isoformat()
             data["user_id"] = user_id
             data["username"] = username
             data["fullname"] = fullname
@@ -207,35 +243,59 @@ def parse(g_id, p_id):
             #    (bool(BeautifulSoup(data["username"] , "html.parser").find())==True) or (bool(BeautifulSoup(data["fullname"] , "html.parser").find())==True)\
             #    (bool(BeautifulSoup(data["post_url"] , "html.parser").find())==True):
             #     return None
-
             return data
+            # if post_date < last_hour:
+            #     return data
+            # else:
+            #     print(post_date)
 
         except Exception as e:
+            print('Err 3', e)
             # print(story_raw)
             # print(e)
             return None
 
-fb = FacebookScraper()
-group_id = '1882866305336238'
-for post in fb.get_group_posts(group=group_id ,page_limit=100):
-    # print(post)
+def run():
+    fb = FacebookScraper()
+    list_group = get_list_group()
+    last_hour_datetime = datetime.datetime.now() - timedelta(hours=12)
+    last_hour_datetime = last_hour_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    last_hour = datetime.datetime.strptime(last_hour_datetime, '%Y-%m-%d %H:%M:%S')
+    print(last_hour)
+    for group_id in list_group:
+        for post in fb.get_group_posts(group=group_id ,page_limit=100):
+            # print(post)
+            if (post["post_id"] is not None) and (post["text"] is not None) and (post["text"] !=''):
+                # print(post["post_id"])
+                detail = parse(group_id, post["post_id"])
+                if detail is not None and detail["post_date"] >= last_hour:
+                    del detail["post_date"]
+                    del post['time']
+                    del post['shared_text']
+                    del post['post_text']
+                    # print(post["text"])
+                    # post.update({"text":str(post["text"].encode())})
+                    post.update({"group_id":group_id})
+                    post.update({"type": "post"})
+                    post.update({"platform": "facebook"})
+                    post.update(detail)
+                    # print(str(post["text"]))
+                    # print(type(post["text"]))
+                    # print(post["text"].decode('ascii'))
+                    # a = post["text"].encode('utf-8')
+                    # print(a)
 
-    if (post["post_id"] is not None) and (post["text"] is not None) and (post["text"] !=''):
-        # print(post["post_id"])
-        detail = parse(group_id, post["post_id"])
-        if detail is not None:
-            del post['time']
-            del post['shared_text']
-            del post['post_text']
-            # print(post["text"])
-            # post.update({"text":str(post["text"].encode())})
-            post.update(detail)
-            # print(str(post["text"]))
-            # print(type(post["text"]))
-            # print(post["text"].decode('ascii'))
-            # a = post["text"].encode('utf-8')
-            # print(a)
-            print(post)
-            # insert_post_one(post)
-            sleep(2)
+                    if (post["username"] is not None and '</' not in post["username"]) or (post["username"] is not None and '<a href=' in post["username"])\
+                        or (post["fullname"] is not None and '</' not in post["fullname"]) or (post["fullname"] is not None and'<a href=' in post["fullname"])\
+                        or (post["user_id"] is not None and '</' not in post["user_id"]) or (post["user_id"] is not None and '<a href=' in post["user_id"]):
+                        print(post)
+                        insert_post_one(post)
+                        sleep(2)
+                else:
+                    # print('fuck')
+                    print(detail)
+
+if __name__ == '__main__':
+    run()
+
 
