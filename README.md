@@ -17,7 +17,7 @@ NGINX Proxy for fb-scraper app
 * Method : GET
 
 ### Curl ###
-* curl --location --request GET 'localhost:8082/fb/group'
+* curl --location --request GET 'ip-addr:8082/fb/group'
 
 ### Environment Variables
 
