@@ -9,7 +9,15 @@ NGINX Proxy for fb-scraper app
 ## Usage
 
 * pip install -r requirements.txt
-* python3 group_search.py
+* export FLASK_APP=group_search.py
+* python3 -m flask run --host=0.0.0.0 --port=8082
+
+### Postman ###
+* url : ip-addr:8082/fb/group
+* Method : GET
+
+### Curl ###
+* curl --location --request GET 'localhost:8082/fb/group'
 
 ### Environment Variables
 
