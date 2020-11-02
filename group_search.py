@@ -9,13 +9,25 @@ from time import sleep
 import pymongo
 import json
 import os
+from flask import Flask
+from flask import Flask, request
+from flask.json import jsonify
+from threading import Thread
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__)
+
 with open(ROOT_DIR+'/config_db.json') as json_file:
     config = json.loads(json_file.read())
 # config = json.load(config)
 
 mongoclient = pymongo.MongoClient("mongodb://{}:{}/".format(config["host"], config["port"]))
 db = mongoclient[config["db"]]
+
+class FbCrawl(Thread):
+    def run(self):
+        run_crawler()
 
 def get_list_group():
     mycol = db["facebook_groups"]
@@ -34,7 +46,7 @@ def insert_post_one(post):
         x = mycol.insert_one(post)
         print(x.inserted_id)
     except Exception as e:
-        # print(e)
+        # print('Mongo Err',e)
         pass
 
 
@@ -104,7 +116,7 @@ def parse(g_id, p_id):
             # # # print(user_id)
 
             data["post_date"] = post_date
-            data["pubdate"] = datetime_object.isoformat()
+            data["pubdate"] = datetime_object
             data["user_id"] = user_id
             data["username"] = username
             data["fullname"] = fullname
@@ -178,7 +190,7 @@ def parse(g_id, p_id):
             fullname = ''.join(fname)
             # # # print(user_id)
             data["post_date"] = post_date
-            data["pubdate"] = datetime_object.isoformat()
+            data["pubdate"] = datetime_object
             data["user_id"] = user_id
             data["username"] = username
             data["fullname"] = fullname
@@ -234,7 +246,7 @@ def parse(g_id, p_id):
             fname = re.findall('<strong><a>(.*?)<\/a><\/strong><span class="bv"', str(story_raw))
             fullname = ''.join(fname)
             data["post_date"] = post_date
-            data["pubdate"] = datetime_object.isoformat()
+            data["pubdate"] = datetime_object
             data["user_id"] = user_id
             data["username"] = username
             data["fullname"] = fullname
@@ -255,19 +267,25 @@ def parse(g_id, p_id):
             # print(e)
             return None
 
-def run():
+def run_crawler():
     fb = FacebookScraper()
     list_group = get_list_group()
-    last_hour_datetime = datetime.datetime.now() - timedelta(hours=12)
+    last_hour_datetime = datetime.datetime.now() - timedelta(hours=6)
     last_hour_datetime = last_hour_datetime.strftime('%Y-%m-%d %H:%M:%S')
     last_hour = datetime.datetime.strptime(last_hour_datetime, '%Y-%m-%d %H:%M:%S')
     print(last_hour)
-    for group_id in list_group:
-        for post in fb.get_group_posts(group=group_id ,page_limit=100):
+    n = len(list_group)
+    i = 0
+    while i <= n:
+        endDate = 0
+        if i == n:
+            print('close bos')
+            break
+        for post in fb.get_group_posts(group=list_group[i] ,page_limit=100):
             # print(post)
             if (post["post_id"] is not None) and (post["text"] is not None) and (post["text"] !=''):
                 # print(post["post_id"])
-                detail = parse(group_id, post["post_id"])
+                detail = parse(list_group[i], post["post_id"])
                 if detail is not None and detail["post_date"] >= last_hour:
                     del detail["post_date"]
                     del post['time']
@@ -275,7 +293,7 @@ def run():
                     del post['post_text']
                     # print(post["text"])
                     # post.update({"text":str(post["text"].encode())})
-                    post.update({"group_id":group_id})
+                    post.update({"group_id":list_group[i]})
                     post.update({"type": "post"})
                     post.update({"platform": "facebook"})
                     post.update(detail)
@@ -293,9 +311,19 @@ def run():
                         sleep(2)
                 else:
                     # print('fuck')
+                    endDate += 1
+                    if endDate >= 10:
+                        i += 1
+                        break
                     print(detail)
 
+@app.route("/fb/group", methods=['GET'])
+def fb_group():
+    thread_fb = FbCrawl()
+    thread_fb.start()
+    resp = {'running': True}
+    return jsonify(resp)
 if __name__ == '__main__':
-    run()
+    app.run(host='0.0.0.0', port=8082, debug=False, threaded=True)
 
 
