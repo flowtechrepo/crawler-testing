@@ -20,8 +20,11 @@ mongoclient = pymongo.MongoClient("mongodb://{}:{}/".format(config["host"], conf
 db = mongoclient[config["db"]]
 
 class FbCrawl(Thread):
+    def __init__(self, until):
+        Thread.__init__(self)
+        self.until = until
     def run(self):
-        run_crawler()
+        run_crawler(self.until)
 def insert_post_one(post):
     post_dict = post
     # print(post_dict["post_id"])
@@ -34,14 +37,14 @@ def insert_post_one(post):
         # print('Mongo Err',e)
         pass
 
-def run_crawler():
+def run_crawler(backtrack_hour):
     list_pages = ["ShopeeID", "detikcom", "KOMPAScom", "gojekindonesia", "GrabID", "OVOIDN", "linkaja.indonesia",
                   "TravelokaID", "gopayindonesia","homecreditid", "kredivo", "tokopedia", "bukalapak", "AkuLakuIndonesia",
                   "TempoMedia","jpnncom","suaradotcom","GrabFoodID"]
 
     i = 0
     n = len(list_pages)
-    last_hour_datetime = datetime.datetime.now() - timedelta(hours=24)
+    last_hour_datetime = datetime.datetime.now() - timedelta(hours=int(backtrack_hour))
     last_hour_datetime = last_hour_datetime.strftime('%Y-%m-%d %H:%M:%S')
     last_hour = datetime.datetime.strptime(last_hour_datetime, '%Y-%m-%d %H:%M:%S')
     while i <= n:
@@ -76,7 +79,8 @@ def run_crawler():
 
 @app.route("/fb/pages", methods=['GET'])
 def fb_pages():
-    thread_fb = FbCrawl()
+    b_hour = request.args.get('b_hour')
+    thread_fb = FbCrawl(b_hour)
     thread_fb.start()
     resp = {'running': True}
     return jsonify(resp)
