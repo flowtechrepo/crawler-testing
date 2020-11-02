@@ -270,7 +270,7 @@ def parse(g_id, p_id):
 def run_crawler():
     fb = FacebookScraper()
     list_group = get_list_group()
-    last_hour_datetime = datetime.datetime.now() - timedelta(hours=12)
+    last_hour_datetime = datetime.datetime.now() - timedelta(hours=6)
     last_hour_datetime = last_hour_datetime.strftime('%Y-%m-%d %H:%M:%S')
     last_hour = datetime.datetime.strptime(last_hour_datetime, '%Y-%m-%d %H:%M:%S')
     print(last_hour)
