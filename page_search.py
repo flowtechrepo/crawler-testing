@@ -52,7 +52,7 @@ def run_crawler(backtrack_hour):
         if i == n:
             print('close bos')
             break
-        for post in get_posts(list_pages[i], pages=50):
+        for post in get_posts(list_pages[i], pages=100):
             pubdate = post["time"].strftime("%Y-%m-%d %H:%M:%S")
             post_date = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
             # print(post_date)
@@ -76,6 +76,7 @@ def run_crawler(backtrack_hour):
                 if endDate >= 10:
                     i += 1
                     break
+        i += 1
 
 @app.route("/fb/pages", methods=['GET'])
 def fb_pages():
