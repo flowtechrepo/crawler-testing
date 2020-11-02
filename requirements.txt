@@ -86,7 +86,7 @@ websockets==8.0.2 \
     --hash=sha256:049e694abe33f8a1d99969fee7bfc0ae6761f7fd5f297c58ea933b27dd6805f2 \
     --hash=sha256:882a7266fa867a2ebb2c0baaa0f9159cabf131cf18c1b4270d79ad42f9208dc5
 
-beautifulsoup4
-Requests
-Flask
-pymongo
+Flask==1.1.2 \
+    --hash=sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557
+pymongo==3.11.0 \
+    --hash=sha256:475a34a0745c456ceffaec4ce86b7e0983478f1b6140890dff7b161e7bcd895b
